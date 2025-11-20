@@ -1,5 +1,5 @@
 <div id="header" align="center">
-	<img src="https://media2.giphy.com/media/SvFocn0wNMx0iv2rYz/giphy.gif" width="100"/>
+	<img src="https://raw.githubusercontent.com/Getteli/lightAndNight/refs/heads/main/app/src/main/res/theme-light-dark-white.png" width="100"/>
 </div>
 <h2 align="center">
     <b>Light & Night</b>
