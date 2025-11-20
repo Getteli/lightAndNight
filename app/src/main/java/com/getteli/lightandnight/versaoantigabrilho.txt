@@ -1,0 +1,102 @@
+package com.example.secondautomaticbrightness
+
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import android.widget.ArrayAdapter
+import android.widget.ListView
+
+class MainActivity : AppCompatActivity(), SensorEventListener {
+
+    private lateinit var sensorManager: SensorManager
+    private lateinit var sensorValueListView: ListView
+    private var targetSensor: Sensor? = null
+
+    // Lista para armazenar os valores do sensor
+    private val sensorValues = mutableListOf<String>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        // Inicializa o SensorManager
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+
+        // Obtém a lista de todos os sensores
+        val sensorList = sensorManager.getSensorList(Sensor.TYPE_ALL)
+
+        // Procura pelo sensor específico
+        targetSensor = sensorList.find { it.name == "back_als_str" || it.type == 33171095 }
+
+        // ListView para exibir os valores do sensor
+        sensorValueListView = findViewById(R.id.sensorValueListView)
+
+        // Configura o adapter para o ListView
+        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, sensorValues)
+        sensorValueListView.adapter = adapter
+
+        if (targetSensor != null) {
+            println("Sensor encontrado: ${targetSensor?.name}")
+            registerSensorListener(targetSensor)
+        } else {
+            println("Sensor 'back_als_str' não encontrado no dispositivo.")
+            sensorValues.add("Sensor 'back_als_str' não disponível.")
+            adapter.notifyDataSetChanged()
+        }
+    }
+
+    // Registra o listener para o sensor
+    private fun registerSensorListener(sensor: Sensor?) {
+        sensor?.let {
+            println("Registrando listener para o sensor: ${it.name}")
+            sensorManager.unregisterListener(this) // Remove qualquer listener anterior
+            val success = sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+            if (success) {
+                println("Listener registrado com sucesso para o sensor: ${it.name}")
+            } else {
+                println("Falha ao registrar listener para o sensor: ${it.name}")
+            }
+        }
+    }
+
+    // Implementação do SensorEventListener
+    override fun onSensorChanged(event: SensorEvent?) {
+        event?.let {
+            println("Novos valores recebidos do sensor: ${it.values.joinToString(", ")}")
+
+            // Limpa a lista atual de valores
+            sensorValues.clear()
+
+            sensorValues.add("PRINCIPAL: %.2f".format(it.values[3]) )
+
+            // Adiciona os novos valores à lista
+            it.values.forEachIndexed { index, value ->
+                sensorValues.add("Valor ${index + 1}: %.2f".format(value))
+            }
+
+            // Notifica o adapter sobre as mudanças
+            runOnUiThread {
+                (sensorValueListView.adapter as ArrayAdapter<*>).notifyDataSetChanged()
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        // Não faz nada aqui, mas é necessário implementar
+    }
+
+    // Desregistra o listener quando a atividade é pausada
+    override fun onPause() {
+        super.onPause()
+        sensorManager.unregisterListener(this)
+    }
+
+    // Registra o listener novamente quando a atividade é retomada
+    override fun onResume() {
+        super.onResume()
+        targetSensor?.let { registerSensorListener(it) }
+    }
+}
