@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -13,20 +14,20 @@ import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
+import android.os.PowerManager
+
 
 class SensorForegroundService : Service(), SensorEventListener {
-
-    private lateinit var sensorManager: SensorManager
-    private var targetSensor: Sensor? = null
-
     // Estado compartilhado para controlar o brilho automático
     companion object {
         var isAutoBrightnessEnabled = QuickSettingsTileService.isAutoBrightnessEnabled
     }
+    private lateinit var sensorManager: SensorManager
+    private var targetSensor: Sensor? = null
+    private lateinit var wakeLock: PowerManager.WakeLock
 
     override fun onCreate() {
         super.onCreate()
-        // println("SensorForegroundService criado.")
 
         // Inicializa o SensorManager
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
@@ -49,7 +50,18 @@ class SensorForegroundService : Service(), SensorEventListener {
             .build()
 
         startForeground(1, notification)
+
+        // Inicializa o WakeLock
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "com.getteli.lightandnight:wakelock"
+        )
+        wakeLock.acquire(10 * 60 * 1000L /* timeout */) // Timeout de 10 minutos (opcional)
+
+        println("SensorForegroundService criado e WakeLock ativado.")
     }
+
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // println("SensorForegroundService iniciado.")
@@ -58,6 +70,12 @@ class SensorForegroundService : Service(), SensorEventListener {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        // Libera o WakeLock
+        if (::wakeLock.isInitialized && wakeLock.isHeld) {
+            wakeLock.release()
+        }
+
         // println("SensorForegroundService destruído.")
         sensorManager.unregisterListener(this)
     }
