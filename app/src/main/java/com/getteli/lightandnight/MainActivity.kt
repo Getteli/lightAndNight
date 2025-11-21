@@ -27,6 +27,9 @@ import com.getteli.lightandnight.ui.theme.AppTheme
 import java.time.LocalTime
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import android.os.Build
+import android.content.Context
+import android.os.PowerManager
 
 class MainActivity : ComponentActivity(), SensorEventListener {
 
@@ -42,6 +45,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Solicita ignorar otimizações de bateria, se necessário
+        checkAndRequestIgnoreBatteryOptimizations()
 
         // Inicia o serviço
         startForegroundService()
@@ -161,6 +167,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         ContextCompat.startForegroundService(this, intent)
     }
 
+    private fun checkAndRequestIgnoreBatteryOptimizations() {
+        // Verifica se o aplicativo já está ignorando otimizações de bateria
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+            // Redireciona o usuário para a tela de configurações para ignorar otimizações
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            intent.data = "package:$packageName".toUri()
+            startActivity(intent)
+        }
+    }
 }
 
 @Composable
